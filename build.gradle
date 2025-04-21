@@ -16,6 +16,7 @@ buildscript {
 
 apply plugin: 'io.spring.nohttp'
 apply plugin: 'locks'
+apply plugin: 'maven-publish'
 apply plugin: 'io.spring.convention.root'
 apply plugin: 'org.jetbrains.kotlin.jvm'
 apply plugin: 'org.springframework.security.update-version'
@@ -24,7 +25,6 @@ apply plugin: 'org.springframework.github.milestone'
 apply plugin: 'org.springframework.github.changelog'
 apply plugin: 'org.springframework.github.release'
 apply plugin: 'org.springframework.security.versions.verify-dependencies-versions'
-apply plugin: 'org.springframework.security.check-expected-branch-version'
 
 group = 'org.springframework.security'
 description = 'Spring Security'
@@ -94,6 +94,20 @@ subprojects {
 		options.encoding = "UTF-8"
 		options.compilerArgs.add("-parameters")
 	}
+	
+	apply plugin: 'maven-publish'
+	publishing {
+		repositories {
+			maven {
+				credentials {
+					username = System.getenv("NEXUS_USERNAME")
+					password = System.getenv("NEXUS_PASSWORD")
+				}
+				url = System.getenv("NEXUS_URL")
+				allowInsecureProtocol = System.getenv("NEXUS_ALLOW_INSECURE_PROTOCOL")
+			}
+		}
+	}
 }
 
 
@@ -138,4 +152,12 @@ tasks.register('cloneSamples', IncludeRepoTask) {
 	repository = 'spring-projects/spring-security-samples'
 	ref = samplesBranch
 	outputDirectory = project.hasProperty("cloneOutputDirectory") ? project.file("$cloneOutputDirectory") : project.file("build/samples")
+}
+
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			artifact schemaZip
+		}
+	}
 }
