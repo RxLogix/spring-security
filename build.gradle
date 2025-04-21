@@ -16,7 +16,6 @@ buildscript {
 
 apply plugin: 'io.spring.nohttp'
 apply plugin: 'locks'
-apply plugin: 's101'
 apply plugin: 'io.spring.convention.root'
 apply plugin: 'org.jetbrains.kotlin.jvm'
 apply plugin: 'org.springframework.security.update-version'
@@ -130,13 +129,6 @@ allprojects {
 	}
 }
 
-develocity {
-	buildScan {
-		termsOfUseUrl = 'https://gradle.com/help/legal-terms-of-use'
-		termsOfUseAgree = 'yes'
-	}
-}
-
 nohttp {
 	source.exclude "buildSrc/build/**"
 	source.builtBy(project(':spring-security-config').tasks.withType(RncToXsd))
@@ -146,9 +138,4 @@ tasks.register('cloneSamples', IncludeRepoTask) {
 	repository = 'spring-projects/spring-security-samples'
 	ref = samplesBranch
 	outputDirectory = project.hasProperty("cloneOutputDirectory") ? project.file("$cloneOutputDirectory") : project.file("build/samples")
-}
-
-s101 {
-	repository = 'https://structure101.com/binaries/latest'
-	configurationDirectory = project.file("etc/s101")
 }
