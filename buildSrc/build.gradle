@@ -60,17 +60,9 @@ gradlePlugin {
 			id = "org.springframework.github.release"
 			implementationClass = "org.springframework.gradle.github.release.GitHubReleasePlugin"
 		}
-		s101 {
-			id = "s101"
-			implementationClass = "s101.S101Plugin"
-		}
 		verifyDependenciesVersions {
 			id = "org.springframework.security.versions.verify-dependencies-versions"
 			implementationClass = "org.springframework.security.convention.versions.VerifyDependenciesVersionsPlugin"
-		}
-		checkExpectedBranchVersion {
-			id = "org.springframework.security.check-expected-branch-version"
-			implementationClass = "org.springframework.security.CheckExpectedBranchVersionPlugin"
 		}
 	}
 }

@@ -32,7 +32,7 @@ class RootProjectPlugin implements Plugin<Project> {
 		pluginManager.apply(BasePlugin)
 		pluginManager.apply(SchemaPlugin)
 		pluginManager.apply(NoHttpPlugin)
-		pluginManager.apply(SpringNexusPublishPlugin)
+		//pluginManager.apply(SpringNexusPublishPlugin)
 		pluginManager.apply(CheckProhibitedDependenciesLifecyclePlugin)
 		pluginManager.apply(ArtifactoryPlugin)
 		pluginManager.apply("org.sonarqube")

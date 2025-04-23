@@ -16,7 +16,7 @@ buildscript {
 
 apply plugin: 'io.spring.nohttp'
 apply plugin: 'locks'
-apply plugin: 's101'
+apply plugin: 'maven-publish'
 apply plugin: 'io.spring.convention.root'
 apply plugin: 'org.jetbrains.kotlin.jvm'
 apply plugin: 'org.springframework.security.update-version'
@@ -25,7 +25,6 @@ apply plugin: 'org.springframework.github.milestone'
 apply plugin: 'org.springframework.github.changelog'
 apply plugin: 'org.springframework.github.release'
 apply plugin: 'org.springframework.security.versions.verify-dependencies-versions'
-apply plugin: 'org.springframework.security.check-expected-branch-version'
 
 group = 'org.springframework.security'
 description = 'Spring Security'
@@ -95,6 +94,20 @@ subprojects {
 		options.encoding = "UTF-8"
 		options.compilerArgs.add("-parameters")
 	}
+	
+	apply plugin: 'maven-publish'
+	publishing {
+		repositories {
+			maven {
+				credentials {
+					username = System.getenv("NEXUS_USERNAME")
+					password = System.getenv("NEXUS_PASSWORD")
+				}
+				url = System.getenv("NEXUS_URL")
+				allowInsecureProtocol = System.getenv("NEXUS_ALLOW_INSECURE_PROTOCOL")
+			}
+		}
+	}
 }
 
 
@@ -130,13 +143,6 @@ allprojects {
 	}
 }
 
-develocity {
-	buildScan {
-		termsOfUseUrl = 'https://gradle.com/help/legal-terms-of-use'
-		termsOfUseAgree = 'yes'
-	}
-}
-
 nohttp {
 	source.exclude "buildSrc/build/**"
 	source.builtBy(project(':spring-security-config').tasks.withType(RncToXsd))
@@ -148,7 +154,10 @@ tasks.register('cloneSamples', IncludeRepoTask) {
 	outputDirectory = project.hasProperty("cloneOutputDirectory") ? project.file("$cloneOutputDirectory") : project.file("build/samples")
 }
 
-s101 {
-	repository = 'https://structure101.com/binaries/latest'
-	configurationDirectory = project.file("etc/s101")
+publishing {
+	publications {
+		mavenJava(MavenPublication) {
+			artifact schemaZip
+		}
+	}
 }
