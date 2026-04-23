@@ -1,0 +1,124 @@
+= Building Spring Security (5.8.x / rxlogix fork)
+
+This document describes the JDKs, Gradle toolchain configuration, and commands
+required to build this branch locally. The `README.adoc` also covers the basics;
+this file adds the toolchain details and known issues specific to this branch.
+
+== Required Java versions
+
+[cols="1,1,3", options="header"]
+|===
+| Role | JDK | Source
+
+| Bytecode target (all main sources)
+| 8
+| `build.gradle` -> `JavaLanguageVersion.of(8)`
+
+| SAML2 module compile + test
+| 11
+| `saml2/saml2-service-provider/spring-security-saml2-service-provider.gradle`
+
+| Some `spring-security-config` tests
+| 11
+| `config/spring-security-config.gradle`
+
+| Gradle runtime JVM (to run `./gradlew` itself)
+| 11+ (recommend 11)
+| `buildSrc` uses `Files.readString` / `Files.writeString` (Java 11 APIs)
+|===
+
+*Summary:* you must have *JDK 8* and *JDK 11* installed locally. Gradle itself
+must run on *JDK 11 or newer*; JDK 11 matches the upstream Spring Security
+5.8.x build exactly.
+
+== Toolchain setup
+
+Gradle auto-provisions toolchains by discovering installed JDKs. Configure your
+*user-level* Gradle properties (so machine-specific paths stay out of the repo):
+
+.File: `~/.gradle/gradle.properties`
+[source,properties]
+----
+# Optional: pin the Gradle runtime JVM (otherwise falls back to $JAVA_HOME)
+org.gradle.java.home=/absolute/path/to/jdk-11
+
+# Required: tell Gradle where to find the JDKs used by toolchains
+org.gradle.java.installations.paths=\
+/absolute/path/to/jdk1.8.0_xxx,\
+/absolute/path/to/jdk-11.x.y
+----
+
+If you prefer not to set `org.gradle.java.home`, export `JAVA_HOME` in your
+shell instead:
+
+[source,bash]
+----
+export JAVA_HOME=/absolute/path/to/jdk-11
+----
+
+Verify Gradle picked up the right JVM:
+
+[source,bash]
+----
+./gradlew --version
+----
+
+The `JVM:` line should read `11.x.y`.
+
+== Common build commands
+
+[source,bash]
+----
+# Compile, run tests, build all jars, distribution zips, and docs
+./gradlew build
+
+# Publish to local Maven repository (~/.m2)
+./gradlew publishToMavenLocal
+
+# Skip the buildSrc plugin test suite (see "Known issues" below)
+./gradlew build -PbuildSrc.skipTests
+
+# List available tasks
+./gradlew tasks
+----
+
+== Known issues
+
+=== `buildSrc` integration tests fail on newer JDKs
+
+`JavadocApiPluginITest` and `ShowcaseITest` (under `buildSrc/src/test/`) test
+legacy build plugins and their sample fixtures. They can fail on JDK 13+ due to
+Javadoc frame removal and old JaCoCo versions. These tests validate build
+infrastructure, not product code.
+
+*Workaround:* run with `-PbuildSrc.skipTests` (the flag is wired up at
+`buildSrc/build.gradle` line ~112).
+
+=== Flaky LDAP test: `connectionExceptionIsWrappedInInternalException`
+
+`ActiveDirectoryLdapAuthenticationProviderTests.connectionExceptionIsWrappedInInternalException()`
+uses a 5 ms LDAP timeout and expects `InternalAuthenticationServiceException`.
+On some networks the connect succeeds fast enough that the 5 ms timer fires
+during the *read* phase, producing `UncategorizedLdapException` instead.
+
+*Workaround:* rerun just that test:
+
+[source,bash]
+----
+./gradlew :spring-security-ldap:test \
+    --tests "*connectionExceptionIsWrappedInInternalException*" \
+    --rerun-tasks
+----
+
+Or exclude the ldap test task when the failure is irrelevant to your change:
+
+[source,bash]
+----
+./gradlew build -x :spring-security-ldap:test
+----
+
+=== Maven Central TLS handshake drops
+
+Transient `Remote host terminated the handshake` errors against
+`repo.maven.apache.org` typically indicate a local network / proxy issue. Retry;
+once dependencies are cached locally further builds are unaffected.
