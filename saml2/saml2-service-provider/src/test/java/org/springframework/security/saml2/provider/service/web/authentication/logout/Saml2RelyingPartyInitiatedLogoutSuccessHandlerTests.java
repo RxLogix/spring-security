@@ -105,6 +105,29 @@ public class Saml2RelyingPartyInitiatedLogoutSuccessHandlerTests {
 		assertThat(content).contains("<script>window.onload = function() { document.forms[0].submit(); }</script>");
 	}
 
+	// gh-16673 / CVE-2026-41003
+	@Test
+	public void onLogoutSuccessWhenLocationContainsHtmlThenActionIsEscaped() throws Exception {
+		String maliciousLocation = "https://ap.example.org/slo\"><script>alert(1)</script>";
+		RelyingPartyRegistration registration = TestRelyingPartyRegistrations.full()
+			.assertingPartyDetails((party) -> party.singleLogoutServiceBinding(Saml2MessageBinding.POST)
+				.singleLogoutServiceLocation(maliciousLocation))
+			.build();
+		Authentication authentication = authentication(registration);
+		SecurityContextHolder.getContext().setAuthentication(authentication);
+		Saml2LogoutRequest logoutRequest = Saml2LogoutRequest.withRelyingPartyRegistration(registration)
+			.samlRequest("request")
+			.build();
+		MockHttpServletRequest request = new MockHttpServletRequest("POST", "/saml2/logout");
+		request.setServletPath("/saml2/logout");
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		given(this.logoutRequestResolver.resolve(any(), any())).willReturn(logoutRequest);
+		this.logoutRequestSuccessHandler.onLogoutSuccess(request, response, authentication);
+		String content = response.getContentAsString();
+		assertThat(content).doesNotContain("<script>alert(1)");
+		assertThat(content).contains("&lt;script&gt;alert(1)&lt;/script&gt;");
+	}
+
 	private Saml2Authentication authentication(RelyingPartyRegistration registration) {
 		DefaultSaml2AuthenticatedPrincipal principal = new DefaultSaml2AuthenticatedPrincipal("user", new HashMap<>());
 		principal.setRelyingPartyRegistrationId(registration.getRegistrationId());

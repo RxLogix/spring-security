@@ -126,6 +126,34 @@ public class Saml2LogoutRequestFilterTests {
 		verify(this.securityContextHolderStrategy).getContext();
 	}
 
+	// gh-16673 / CVE-2026-41003
+	@Test
+	public void doFilterWhenResponseLocationContainsHtmlThenActionIsEscaped() throws Exception {
+		String maliciousLocation = "https://ap.example.org/slo\"><script>alert(1)</script>";
+		RelyingPartyRegistration registration = TestRelyingPartyRegistrations.full()
+			.assertingPartyDetails((party) -> party.singleLogoutServiceBinding(Saml2MessageBinding.POST)
+				.singleLogoutServiceResponseLocation(maliciousLocation))
+			.build();
+		Authentication authentication = new TestingAuthenticationToken("user", "password");
+		given(this.securityContextHolderStrategy.getContext()).willReturn(new SecurityContextImpl(authentication));
+		this.logoutRequestProcessingFilter.setSecurityContextHolderStrategy(this.securityContextHolderStrategy);
+		SecurityContextHolder.getContext().setAuthentication(authentication);
+		MockHttpServletRequest request = new MockHttpServletRequest("POST", "/logout/saml2/slo");
+		request.setServletPath("/logout/saml2/slo");
+		request.setParameter(Saml2ParameterNames.SAML_REQUEST, "request");
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		given(this.relyingPartyRegistrationResolver.resolve(any(), any())).willReturn(registration);
+		given(this.logoutRequestValidator.validate(any())).willReturn(Saml2LogoutValidatorResult.success());
+		Saml2LogoutResponse logoutResponse = Saml2LogoutResponse.withRelyingPartyRegistration(registration)
+			.samlResponse("response")
+			.build();
+		given(this.logoutResponseResolver.resolve(any(), any())).willReturn(logoutResponse);
+		this.logoutRequestProcessingFilter.doFilterInternal(request, response, new MockFilterChain());
+		String content = response.getContentAsString();
+		assertThat(content).doesNotContain("<script>alert(1)");
+		assertThat(content).contains("&lt;script&gt;alert(1)&lt;/script&gt;");
+	}
+
 	@Test
 	public void doFilterWhenRequestMismatchesThenNoLogout() throws Exception {
 		Authentication authentication = new TestingAuthenticationToken("user", "password");
