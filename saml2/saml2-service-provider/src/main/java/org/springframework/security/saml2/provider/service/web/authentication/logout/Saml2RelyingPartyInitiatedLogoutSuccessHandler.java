@@ -132,7 +132,7 @@ public final class Saml2RelyingPartyInitiatedLogoutSuccessHandler implements Log
 		html.append("        </noscript>\n");
 		html.append("        \n");
 		html.append("        <form action=\"");
-		html.append(location);
+		html.append(HtmlUtils.htmlEscape(location));
 		html.append("\" method=\"post\">\n");
 		html.append("            <div>\n");
 		html.append("                <input type=\"hidden\" name=\"SAMLRequest\" value=\"");

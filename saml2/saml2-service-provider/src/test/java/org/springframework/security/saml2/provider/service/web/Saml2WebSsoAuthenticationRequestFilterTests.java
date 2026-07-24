@@ -209,6 +209,29 @@ public class Saml2WebSsoAuthenticationRequestFilterTests {
 			.contains("value=\"" + relayStateEncoded + "\"");
 	}
 
+	// gh-16673 / CVE-2026-41003
+	@Test
+	public void doFilterWhenPostAuthenticationRequestUriContainsHtmlThenActionIsEscaped() throws Exception {
+		String maliciousUri = "https://sso-url.example.com/IDP/SSO\"><script>alert(1)</script>";
+		RelyingPartyRegistration registration = this.rpBuilder
+			.assertingPartyDetails((asserting) -> asserting.singleSignOnServiceBinding(Saml2MessageBinding.POST))
+			.build();
+		Saml2AuthenticationRequestContext context = authenticationRequestContext()
+			.relyingPartyRegistration(registration)
+			.build();
+		Saml2PostAuthenticationRequest request = Saml2PostAuthenticationRequest
+			.withAuthenticationRequestContext(context)
+			.samlRequest("request")
+			.authenticationRequestUri(maliciousUri)
+			.build();
+		given(this.resolver.resolve(any())).willReturn(context);
+		given(this.factory.createPostAuthenticationRequest(any())).willReturn(request);
+		this.filter.doFilterInternal(this.request, this.response, this.filterChain);
+		String content = this.response.getContentAsString();
+		assertThat(content).doesNotContain("<script>alert(1)");
+		assertThat(content).contains("&lt;script&gt;alert(1)&lt;/script&gt;");
+	}
+
 	@Test
 	public void doFilterWhenSetAuthenticationRequestFactoryThenUses() throws Exception {
 		Saml2AuthenticationRequestContext context = authenticationRequestContext().build();

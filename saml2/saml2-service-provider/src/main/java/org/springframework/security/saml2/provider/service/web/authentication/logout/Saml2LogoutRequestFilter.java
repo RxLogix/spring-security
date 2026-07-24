@@ -231,7 +231,7 @@ public final class Saml2LogoutRequestFilter extends OncePerRequestFilter {
 		html.append("        </noscript>\n");
 		html.append("        \n");
 		html.append("        <form action=\"");
-		html.append(location);
+		html.append(HtmlUtils.htmlEscape(location));
 		html.append("\" method=\"post\">\n");
 		html.append("            <div>\n");
 		html.append("                <input type=\"hidden\" name=\"SAMLResponse\" value=\"");

@@ -244,7 +244,7 @@ public class Saml2WebSsoAuthenticationRequestFilter extends OncePerRequestFilter
 		html.append("        </noscript>\n");
 		html.append("        \n");
 		html.append("        <form action=\"");
-		html.append(authenticationRequestUri);
+		html.append(HtmlUtils.htmlEscape(authenticationRequestUri));
 		html.append("\" method=\"post\">\n");
 		html.append("            <div>\n");
 		html.append("                <input type=\"hidden\" name=\"SAMLRequest\" value=\"");
